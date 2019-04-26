@@ -1,104 +1,7 @@
-import gym, random, numpy as np
+import gym, numpy as np, random
 from gym import error, spaces, utils
 from gym.utils import seeding
-
-class PlayerAgent:
-	def __init__(self, mark):
-		self.mark = mark
-
-	@property
-	def mark(self):
-		return self.__mark
-
-	@mark.setter
-	def mark(self, mark):
-		self.__mark = mark
-
-	# Random move from player
-	def action(self, state):
-		numbers = []
-		array = np.array(state).ravel()
-		for i in range(0, 9):
-			if (array[i] == ' '):
-				numbers.append(i)
-		move = random.sample(numbers, 1)[0]
-		return move
-
-class TicTacToeAgent(PlayerAgent):
-	def __init__(self, mark):
-		super().__init__(mark)
-		self.learning_rate = 0.5
-		self.discount_factor = 0.01
-		self.exploration_rate = 0.33
-
-		self.q_states = {}
-		self.state_order = []
-
-		self.mark = mark
-
-	# Transcode the state matrix into a string (used for recording the state before making the winning move)
-	def serializeState(self, state):
-		string = ""
-		for row in range(0, len(state)):
-			for col in range(0, len(state[row])):
-				if(state[row][col] == 'O'):
-					string += '1'
-				elif(state[row][col] == 'X'):
-					string += '2'
-				else:
-					string += '0'
-
-		return string
-
-	# Determine the move for bot
-	def action(self, state):
-		# One dimensionl array of the current state of the game
-		current_state = np.array(state).ravel()
-
-		# State key for recording movements
-		state_key = self.serializeState(state)
-
-		# Determining if the bot explores or not
-		exploration = np.random.random() < self.exploration_rate
-
-		possible_moves = []
-
-		# Checking if the board only has one move left
-		for i in range(0, 9):
-			if (current_state[i] == " "):
-				possible_moves.append(i)
-
-		if (len(possible_moves) == 1):
-			move = possible_moves[0]
-			self.state_order.append((state_key, move))
-			return move
-
-
-		possible_moves = []
-		# For Exploiting: If the bot remembers the current state, it can make a calculated move
-		if (not exploration and state_key in self.q_states):
-			print("EXPLOITING")
-			# Get the q values of the currnt state (these are the numbers that are constantly changing after rewarding and punishing the bot)
-			state_values = self.q_states[state_key].ravel()
-			print(state_values)
-
-			max_reward = np.max(state_values)
-			for i in range(0, 9):
-				if (state_values[i] == max_reward):
-					possible_moves.append(i)
-
-
-		# For Exploring: Making a random move based on the current state
-		else:
-			print("EXPLORING")
-			for i in range(0, 9):
-				if (current_state[i] == ' '):
-					possible_moves.append(i)
-
-		move = random.choice(possible_moves)
-		self.state_order.append((state_key, move))
-		return move
-
+from gym_tictactoe.envs.tictactoe_agent import PlayerAgent, TicTacToeAgent
 
 class TicTacToe(gym.Env):
 	metadata = {'render.modes': ['human']}
@@ -145,10 +48,17 @@ class TicTacToe(gym.Env):
 
 
 	def __init__(self):
-		self.playerWins = 0
+		self.player1Wins = 0
+		self.player2Wins = 0
+		self.state = [[' ', ' ', ' '],[' ', ' ', ' '],[' ', ' ', ' ']]
+		self.turns = 0
+		self.done = 0
+		self.validMove = True
 		self.draws = 0
-		self.cpuWins = 0
-		self.reset()
+
+	def init(self, player1, player2):
+		self.player1 = player1
+		self.player2 = player2
 
 	# Check if each column or row is occupied and has the same mark
 	def checkRowsAndCols(self):
@@ -156,17 +66,17 @@ class TicTacToe(gym.Env):
 		for i in range(3):
 			if (self.state[i][0] != " " and self.state[i][0] == self.state[i][1] and self.state[i][1] == self.state[i][2]):
 				if (self.state[i][0] == "O" or self.state[0][i] == "O"):
-					stateObj['winner'] = "Player" if (self.player.mark == "O") else "CPU"
+					stateObj['winner'] = self.player1.name if (self.player1.mark == "O") else self.player2.name
 					stateObj['win']  = True
 				else:
-					stateObj['winner'] =  "Player" if (self.player.mark == "X") else "CPU"
+					stateObj['winner'] =  self.player1.name if (self.player1.mark == "X") else self.player2.name
 					stateObj['win'] = True
 			elif(self.state[0][i] != " " and self.state[0][i] == self.state[1][i] and self.state[1][i] ==self.state[2][i]):
 				if (self.state[0][i] == "O"):
-					stateObj['winner'] = "Player" if (self.player.mark == "O") else "CPU"
+					stateObj['winner'] = self.player1.name if (self.player1.mark == "O") else self.player2.name
 					stateObj['win'] = True
 				else:
-					stateObj['winner'] = "Player" if (self.player.mark == "X") else "CPU"
+					stateObj['winner'] = self.player1.name if (self.player1.mark == "X") else self.player2.name
 					stateObj['win'] = True
 
 		return stateObj
@@ -176,17 +86,17 @@ class TicTacToe(gym.Env):
 		stateObj = {'win': False, 'winner': "None"}
 		if (self.state[0][0] != " " and self.state[0][0] == self.state[1][1] and self.state[1][1] == self.state[2][2]):
 			if (self.state[0][0] == "O"):
-				stateObj['winner']  = "Player" if (self.player.mark == "O") else "CPU"
+				stateObj['winner']  = self.player1.name if (self.player1.mark == "O") else self.player2.name
 				stateObj['win'] = True
 			else:
-				stateObj['winner']  = "Player" if (self.player.mark == "X") else "CPU"
+				stateObj['winner']  = self.player1.name if (self.player2.mark == "X") else self.player2.name
 				stateObj['win'] = True
 		elif (self.state[0][2] != " " and self.state[0][2] == self.state[1][1] and self.state[1][1] == self.state[2][0]):
 			if (self.state[0][2] == "O"):
-				stateObj['winner']  = "Player" if (self.player.mark == "O") else "CPU"
+				stateObj['winner']  = self.player1.name if (self.player1.mark == "O") else self.player2.name
 				stateObj['win'] = True
 			else:
-				stateObj['winner']  = "Player" if (self.player.mark == "X") else "CPU"
+				stateObj['winner']  = self.player1.name if (self.player1.mark == "X") else self.player2.name
 				stateObj['win'] = True
 
 		return stateObj
@@ -214,6 +124,11 @@ class TicTacToe(gym.Env):
 		# Pointless if you and the bot knows how to make proper moves!!! (for example, prevent the player from pressing a square on a GUI or rerandomizing a random move from a bot if it's invalid)
 		if self.state[int(target/3)][target%3] != " ":
 			print("Invalid Step")
+			if (mark == self.player1.mark and type(self.player1) == TicTacToeAgent):
+				self.punishBotForInvalidMove(self.player1, -0.5)
+			elif (mark == self.player2.mark and type(self.player2) == TicTacToeAgent):
+				self.punishBotForInvalidMove(self.player2, -0.5)
+
 			self.validMove = False
 
 		else:
@@ -229,19 +144,34 @@ class TicTacToe(gym.Env):
 		if(checkState['win'] == True):
 			self.done = 1;
 
-			if (checkState['winner'] == "Player"):
-				print("Player wins.", sep="", end="\n")
-				self.rewardBot(-1)
-				self.playerWins += 1
+			if (checkState['winner'] == self.player1.name):
+				print(self.player1.name + " wins.", sep="", end="\n")
+				if (type(self.player1) == TicTacToeAgent):
+					self.rewardBot(self.player1, 1)
+
+				if (type(self.player2) == TicTacToeAgent):
+					self.rewardBot(self.player2, -1)
+
+				self.player1Wins += 1
 			else:
-				print("CPU wins.", sep="", end="\n")
-				self.rewardBot(1)
-				self.cpuWins += 1
+				print(self.player2.name + " wins.", sep="", end="\n")
+				if (type(self.player2) == TicTacToeAgent):
+					self.rewardBot(self.player2, 1)
+
+				if (type(self.player1) == TicTacToeAgent):
+					self.rewardBot(self.player1, -1)
+
+				self.player2Wins += 1
 
 		# If the game's outcome is draw
 		elif (checkState['win'] == False and self.done == 1):
 			self.draws += 1
-			self.rewardBot(0.5)
+			if (type(self.player1) == TicTacToeAgent):
+				self.rewardBot(self.player1, 0.5)
+
+			if (type(self.player2) == TicTacToeAgent):
+				self.rewardBot(self.player2, 0.5)
+
 			print("DRAW! No one wins!")
 
 		stateObj['state'] = self.state
@@ -251,51 +181,57 @@ class TicTacToe(gym.Env):
 
 		return stateObj
 
+	def punishBotForInvalidMove(self, player, reward):
+		# Last move made by player
+		last_state_key, last_move = player.state_order.pop()
+		# Zero matrix
+		player.q_states[last_state_key] = np.zeros((3, 3))
+		# Punishing the player's invalid mod
+		player.q_states[last_state_key].itemset(last_move, reward)
+
 	# Rewarding or Punishing the bot
-	def rewardBot(self, reward):
+	def rewardBot(self, player, reward):
 		# Last move made by bot
-		last_state_key, last_move = self.cpu.state_order.pop()
+		last_state_key, last_move = player.state_order.pop()
 
 		# Zero matrix
-		self.cpu.q_states[last_state_key] = np.zeros((3, 3))
-		# Rewarding the state
-		self.cpu.q_states[last_state_key].itemset(last_move, reward)
+		player.q_states[last_state_key] = np.zeros((3, 3))
+		# Rewarding or punishing the state
+		player.q_states[last_state_key].itemset(last_move, reward)
 
 		# Going through the rest of the moves that the bot has made
-		while (self.cpu.state_order):
+		while (player.state_order):
 			# Move made by bot
-			state_key, move = self.cpu.state_order.pop()
+			state_key, move = player.state_order.pop()
 
 			# Reducing reward
-			reward *= self.cpu.discount_factor
+			reward *= player.discount_factor
 
 			# Calculating temporal difference
-			old_state = self.cpu.q_states.get(state_key, np.zeros((3, 3)))
-			temporal_difference = self.cpu.learning_rate * ((reward * self.cpu.q_states[last_state_key]) - old_state)
+			old_state = player.q_states.get(state_key, np.zeros((3, 3)))
+			temporal_difference = player.learning_rate * ((reward * player.q_states[last_state_key]) - old_state)
 
 			# State was encountered before so we increase the reward
-			if (state_key in self.cpu.q_states):
+			if (state_key in player.q_states):
 				reward += temporal_difference.item(last_move)
-				self.cpu.q_states[state_key].itemset(move, reward)
+				player.q_states[state_key].itemset(move, reward)
 
 			# State was not encountered before so we set the reward to a new one
 			else:
 				# Assign a new key to the array of states
-				self.cpu.q_states[state_key] = np.zeros((3,3))
+				player.q_states[state_key] = np.zeros((3,3))
 				reward = temporal_difference.item(last_move)
-				self.cpu.q_states[state_key].itemset(move, reward)
+				player.q_states[state_key].itemset(move, reward)
 
 			# Last state key and move are now the previous state key and move (as we pop moves out of the state_order array)
 			last_state_key = state_key
 			last_move = move
 
 
-
 	#Reset the board and counters
 	def reset(self):
 		# Randomize the player who goes first
-		#self.turn = 'Player' if (random.randint(0, 1) == 0) else 'CPU'
-		self.turn = 'CPU'
+		self.turn = self.player1.mark if (random.randint(0, 1) == 0) else self.player2.mark
 		self.state = [[' ', ' ', ' '],[' ', ' ', ' '],[' ', ' ', ' ']]
 		self.turns = 0
 		self.done = 0
@@ -315,72 +251,59 @@ class TicTacToe(gym.Env):
 				print('\n---------')
 		print("\n")
 
-	# Train the bot
-	def train(self):
-		self.player = PlayerAgent('O')
-		self.cpu = TicTacToeAgent('X')
-
+	# Play Tic Tac Toe game for a specified amount
+	def play(self):
 		for i in range(1,1000):
 			print("Game #" + str(i) + "\n")
 			self.reset()
 
 			while (True):
 				stateObj = None
-				action = self.cpu.action(self.state)
-				stateObj = self.step(action, self.cpu.mark)
-				print(stateObj)
-				self.render()
-
-				if (stateObj['done'] == 1):
-					print("Q_STATES\n--------")
-					print(self.cpu.q_states)
-					print("\n--------------------------------------------------------------------------------------")
-
-					print("Game #" + str(i) + " done!\n------------------------------------------------------------------------------------------------------\n")
-					break
-
-	# Play Tic Tac Toe game for a specified amount
-	def play(self):
-		self.player = PlayerAgent('O')
-		self.cpu = TicTacToeAgent('X')
-
-		for i in range(1,10000):
-			print("Game #" + str(i) + "\n")
-			self.reset()
-
-			while (True):
-				stateObj = None
-				if(self.turn == "Player"):
-					print("Player's Turn\n-------------")
-					action = self.player.action(self.state)
-					print("Player selects " + str(action))
-					stateObj = self.step(action, self.player.mark)
-					self.turn = 'CPU'
+				if(self.turn == self.player1.name):
+					print(self.player1.name + "'s Turn\n-------------")
+					action = self.player1.action(self.state)
+					print(self.player1.name + " selects " + str(action))
+					stateObj = self.step(action, self.player1.mark)
+					self.turn = self.player2.name
 					print(stateObj)
 					self.render()
 
-				else:
-					print("CPU's Turn\n-------------")
-					action = self.cpu.action(self.state)
-					print("CPU selects " + str(action))
-					stateObj = self.step(action, self.cpu.mark)
-					print(stateObj)
-					self.render()
-
-					while(stateObj['validMove'] != True):
-						print("CPU's Turn\n-------------")
-						action = self.cpu.action(self.state)
-						print("CPU selects " + str(action))
-						stateObj = self.step(action, self.cpu.mark)
+					while (type(self.player1) == TicTacToeAgent and stateObj['validMove'] != True):
+						print(self.player1.name + "'s Turn\n-------------")
+						action = self.player1.action(self.state)
+						print(self.player1.name + " selects " + str(action))
+						stateObj = self.step(action, self.player1.mark)
 						print(stateObj)
 						self.render()
 
-					self.turn = 'Player'
+				else:
+					print(self.player2.name + "'s Turn\n-------------")
+					action = self.player2.action(self.state)
+					print(self.player2.name + " selects " + str(action))
+					stateObj = self.step(action, self.player2.mark)
+					self.turn = self.player1.name
+					print(stateObj)
+					self.render()
+
+					while(type(self.player2) == TicTacToeAgent and stateObj['validMove'] != True):
+						print(self.player2.name + "'s Turn\n-------------")
+						action = self.player2.action(self.state)
+						print(self.player2.name + " selects " + str(action))
+						stateObj = self.step(action, self.player2.mark)
+						print(stateObj)
+						self.render()
 
 				if (stateObj['done'] == 1):
 					print("Game #" + str(i) + " done!\n------------------------------------------------------------------------------------------------------\n")
 					break
 
-		print("Player Wins (" + self.player.mark + "): " + str(self.playerWins) +
-			  " | CPU Wins (" + self.cpu.mark + "): " + str(self.cpuWins) +
-			  " | Draws: " + str(self.draws))
+		print(self.player1.name + " Wins (" + self.player1.mark + "): " + str(self.player1Wins) + "\n"
+			  + self.player2.name + " Wins (" + self.player2.mark + "): " + str(self.player2Wins) + "\n"
+			  + "Draws: " + str(self.draws))
+
+
+		# print()
+		#
+		# for state in sorted (self.cpu.q_states):
+		# 	print(state)
+		# 	print(np.array(self.cpu.q_states[state]).ravel())
