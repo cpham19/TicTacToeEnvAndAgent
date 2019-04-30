@@ -13,7 +13,9 @@ def main():
     cpu = TicTacToeAgent('Bot 1', 'X')
     env = gym.make('tictactoe-v0')
     env.init(player, cpu)
-    env.play()
+    env.train(30000)
+    cpu.exploration_rate = 0.00
+    env.play(30000)
 
     # cpu3 = TicTacToeAgent('Bot 3', 'O')
     # cpu4 = TicTacToeAgent('Bot 4', 'X')

@@ -123,7 +123,7 @@ class TicTacToe(gym.Env):
 
 		# Pointless if you and the bot knows how to make proper moves!!! (for example, prevent the player from pressing a square on a GUI or rerandomizing a random move from a bot if it's invalid)
 		if self.state[int(target/3)][target%3] != " ":
-			print("Invalid Step")
+			#print("Invalid Step")
 			if (mark == self.player1.mark and type(self.player1) == TicTacToeAgent):
 				self.punishBotForInvalidMove(self.player1, -0.5)
 			elif (mark == self.player2.mark and type(self.player2) == TicTacToeAgent):
@@ -145,7 +145,6 @@ class TicTacToe(gym.Env):
 			self.done = 1;
 
 			if (checkState['winner'] == self.player1.name):
-				print(self.player1.name + " wins.", sep="", end="\n")
 				if (type(self.player1) == TicTacToeAgent):
 					self.rewardBot(self.player1, 1)
 
@@ -154,7 +153,6 @@ class TicTacToe(gym.Env):
 
 				self.player1Wins += 1
 			else:
-				print(self.player2.name + " wins.", sep="", end="\n")
 				if (type(self.player2) == TicTacToeAgent):
 					self.rewardBot(self.player2, 1)
 
@@ -162,6 +160,8 @@ class TicTacToe(gym.Env):
 					self.rewardBot(self.player1, -1)
 
 				self.player2Wins += 1
+
+			#print(checkState['winner'] + " wins.", sep="", end="\n")
 
 		# If the game's outcome is draw
 		elif (checkState['win'] == False and self.done == 1):
@@ -172,7 +172,7 @@ class TicTacToe(gym.Env):
 			if (type(self.player2) == TicTacToeAgent):
 				self.rewardBot(self.player2, 0.5)
 
-			print("DRAW! No one wins!")
+			#print("DRAW! No one wins!")
 
 		stateObj['state'] = self.state
 		stateObj['done'] = self.done
@@ -251,50 +251,105 @@ class TicTacToe(gym.Env):
 				print('\n---------')
 		print("\n")
 
-	# Play Tic Tac Toe game for a specified amount
-	def play(self):
-		for i in range(1,1000):
-			print("Game #" + str(i) + "\n")
+	def train(self, games):
+		print("TRAINING PHASE")
+		for i in range(1, games + 1):
+			#print("Game #" + str(i) + "\n")
 			self.reset()
 
 			while (True):
 				stateObj = None
 				if(self.turn == self.player1.name):
-					print(self.player1.name + "'s Turn\n-------------")
+					#print(self.player1.name + "'s Turn\n-------------")
 					action = self.player1.action(self.state)
-					print(self.player1.name + " selects " + str(action))
+					#print(self.player1.name + " selects " + str(action))
 					stateObj = self.step(action, self.player1.mark)
 					self.turn = self.player2.name
-					print(stateObj)
-					self.render()
+					#print(stateObj)
+					#self.render()
 
 					while (type(self.player1) == TicTacToeAgent and stateObj['validMove'] != True):
-						print(self.player1.name + "'s Turn\n-------------")
+						#print(self.player1.name + "'s Turn\n-------------")
 						action = self.player1.action(self.state)
-						print(self.player1.name + " selects " + str(action))
+						#print(self.player1.name + " selects " + str(action))
 						stateObj = self.step(action, self.player1.mark)
-						print(stateObj)
-						self.render()
+						#print(stateObj)
+						#self.render()
 
 				else:
-					print(self.player2.name + "'s Turn\n-------------")
+					#print(self.player2.name + "'s Turn\n-------------")
 					action = self.player2.action(self.state)
-					print(self.player2.name + " selects " + str(action))
+					#print(self.player2.name + " selects " + str(action))
 					stateObj = self.step(action, self.player2.mark)
 					self.turn = self.player1.name
-					print(stateObj)
-					self.render()
+					#print(stateObj)
+					#self.render()
 
 					while(type(self.player2) == TicTacToeAgent and stateObj['validMove'] != True):
-						print(self.player2.name + "'s Turn\n-------------")
+						#print(self.player2.name + "'s Turn\n-------------")
 						action = self.player2.action(self.state)
-						print(self.player2.name + " selects " + str(action))
+						#print(self.player2.name + " selects " + str(action))
 						stateObj = self.step(action, self.player2.mark)
-						print(stateObj)
-						self.render()
+						#print(stateObj)
+						#self.render()
 
 				if (stateObj['done'] == 1):
-					print("Game #" + str(i) + " done!\n------------------------------------------------------------------------------------------------------\n")
+					#print("Game #" + str(i) + " done!\n------------------------------------------------------------------------------------------------------\n")
+					break
+
+		print(self.player1.name + " Wins (" + self.player1.mark + "): " + str(self.player1Wins) + "\n"
+			  + self.player2.name + " Wins (" + self.player2.mark + "): " + str(self.player2Wins) + "\n"
+			  + "Draws: " + str(self.draws))
+
+	# Play Tic Tac Toe game for a specified amount
+	def play(self, games):
+		print("PLAYING PHASE")
+		self.player1Wins = 0
+		self.player2Wins = 0
+		self.draws = 0
+
+		for i in range(1, games + 1):
+			#print("Game #" + str(i) + "\n")
+			self.reset()
+
+			while (True):
+				stateObj = None
+				if(self.turn == self.player1.name):
+					#print(self.player1.name + "'s Turn\n-------------")
+					action = self.player1.action(self.state)
+					#print(self.player1.name + " selects " + str(action))
+					stateObj = self.step(action, self.player1.mark)
+					self.turn = self.player2.name
+					#print(stateObj)
+					#self.render()
+
+					while (type(self.player1) == TicTacToeAgent and stateObj['validMove'] != True):
+						#print(self.player1.name + "'s Turn\n-------------")
+						action = self.player1.action(self.state)
+						#print(self.player1.name + " selects " + str(action))
+						stateObj = self.step(action, self.player1.mark)
+						#print(stateObj)
+						#self.render()
+
+				else:
+					#print(self.player2.name + "'s Turn\n-------------")
+					action = self.player2.action(self.state)
+					#print(self.player2.name + " selects " + str(action))
+					stateObj = self.step(action, self.player2.mark)
+					self.turn = self.player1.name
+					#print(stateObj)
+					#self.render()
+
+					while(type(self.player2) == TicTacToeAgent and stateObj['validMove'] != True):
+						#print(self.player2.name + "'s Turn\n-------------")
+						action = self.player2.action(self.state)
+						#print(self.player2.name + " selects " + str(action))
+						stateObj = self.step(action, self.player2.mark)
+						#print(stateObj)
+						#self.render()
+
+				if (stateObj['done'] == 1):
+					#print("Game #" + str(i) + " done!\n------------------------------------------------------------------------------------------------------\n")
 					break
 
 		print(self.player1.name + " Wins (" + self.player1.mark + "): " + str(self.player1Wins) + "\n"

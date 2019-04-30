@@ -52,6 +52,30 @@ class TicTacToeAgent(PlayerAgent):
 	def name(self, name):
 		self.__name = name
 
+	@property
+	def learning_rate(self):
+		return self.__learning_rate
+
+	@learning_rate.setter
+	def learning_rate(self, learning_rate):
+		self.__learning_rate = learning_rate
+
+	@property
+	def discount_factor(self):
+		return self.__discount_factor
+
+	@discount_factor.setter
+	def discount_factor(self, discount_factor):
+		self.__discount_factor = discount_factor
+
+	@property
+	def exploration_rate(self):
+		return self.__exploration_rate
+
+	@exploration_rate.setter
+	def exploration_rate(self, exploration_rate):
+		self.__exploration_rate = exploration_rate
+
 	# Transcode the state matrix into a string (used for recording the state before making the winning move)
 	def serializeState(self, state):
 		string = ""
@@ -93,10 +117,10 @@ class TicTacToeAgent(PlayerAgent):
 		possible_moves = []
 		# For Exploiting: If the bot remembers the current state, it can make a calculated move
 		if (not exploration and state_key in self.q_states):
-			print("EXPLOITING")
+			#print("EXPLOITING")
 			# Get the q values of the currnt state (these are the numbers that are constantly changing after rewarding and punishing the bot)
 			state_values = self.q_states[state_key].ravel()
-			print(state_values)
+			#print(state_values)
 
 			max_reward = np.max(state_values)
 			for i in range(0, 9):
@@ -106,13 +130,13 @@ class TicTacToeAgent(PlayerAgent):
 
 		# For Exploring: Making a random move based on the current state
 		else:
-			print("EXPLORING")
+			#print("EXPLORING")
 			for i in range(0, 9):
 				if (current_state[i] == ' '):
 					possible_moves.append(i)
 
-		print("POSSIBLE MOVES")
-		print(possible_moves)
+		#print("POSSIBLE MOVES")
+		#print(possible_moves)
 		move = random.choice(possible_moves)
 		self.state_order.append((state_key, move))
 		return move
